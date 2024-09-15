@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  REST API using SAM
+Transform:
+- AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Tracing: Active
+    LoggingConfig:
+      LogFormat: JSON
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref TableDefinition
+  Api:
+    TracingEnabled: true
+    Cors:
+      AllowOrigin: "'*'"
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+
+Resources:
+  TableDefinition:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: TableDefinitionName
+      AttributeDefinitions:
+        - AttributeName: userid
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userid
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  createUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: build/handlers/post.handler
+      Runtime: nodejs20.x
+      # CodeUri: ./build
+      MemorySize: 128
+      Timeout: 100
+      Policies:
+        - AWSLambda_FullAccess
+        - AmazonDynamoDBFullAccess
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /users/create/{userid}
+            Method: post
+
+  getUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: build/handlers/get.handler
+      Runtime: nodejs20.x
+      # CodeUri: ./build
+      MemorySize: 128
+      Timeout: 100
+      Policies:
+        - AWSLambda_FullAccess
+        - AmazonDynamoDBReadOnlyAccess
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /users/get/{userid}
+            Method: get
+
+  deleteUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: build/handlers/delete.handler
+      Runtime: nodejs20.x
+      # CodeUri: ./build
+      MemorySize: 128
+      Timeout: 100
+      Policies:
+        - AWSLambda_FullAccess
+        - AmazonDynamoDBFullAccess
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /users/delete/{userid}
+            Method: delete
+
+  ApplicationResourceGroup:
+    Type: AWS::ResourceGroups::Group
+    Properties:
+      Name:
+        Fn::Sub: ApplicationInsights-SAM-${AWS::StackName}
+      ResourceQuery:
+        Type: CLOUDFORMATION_STACK_1_0
+
+  ApplicationInsightsMonitoring:
+    Type: AWS::ApplicationInsights::Application
+    Properties:
+      ResourceGroupName:
+        Ref: ApplicationResourceGroup
+      AutoConfigurationEnabled: 'true'
+
+Outputs:
+  WebEndpoint:
+    Description: API Gateway endpoint URL for Prod stage
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+

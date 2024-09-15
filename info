@@ -1,0 +1,22 @@
+POST https://l2wofi4yr0.execute-api.ap-south-1.amazonaws.com/Prod/users/create/inxocean
+{
+  "firstName": "Snm",
+  "lastName": "Maurya",
+  "email": "info@inxocean.com",
+  "website": "https://snm.inxocean.com"
+}
+
+
+GET https://l2wofi4yr0.execute-api.ap-south-1.amazonaws.com/Prod/users/get/inxocean
+
+DELETE https://l2wofi4yr0.execute-api.ap-south-1.amazonaws.com/Prod/users/delete/inxocean
+
+
+
+DEPLOYMENT
+
+SAM Create sam-template
+sam package --template-file template.yml --output-template-file sam.yml --s3-bucket  inx-001
+
+SAM deploy sam template from S3
+sam deploy --template-file sam.yml --stack-name inx-rest-api --capabilities CAPABILITY_IAM
